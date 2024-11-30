@@ -47,6 +47,17 @@ npm install --save-dev json-schema-to-diagram
 
 ## Usage
 
+1. Add a start and end marker to your README.md file.
+
+```md
+## Function Calling Tools - Diagram
+
+<!-- MERMAID_DIAGRAM_START -->
+<!-- MERMAID_DIAGRAM_END -->
+```
+
+2. Get the JSON schema of your function calling tools and generate the diagram by calling `jsonSchemaToDiagram` with the `jsonSchema` option.
+
 ```js
 import jsonSchemaToDiagram from "json-schema-to-diagram";
 
@@ -62,7 +73,6 @@ const TOOLS = {
       filePath: "./README.md",
       jsonSchema: TOOLS,
     });
-    console.log("Diagram appended successfully.");
   } catch (error) {
     console.error("Error appending diagram:", error);
     process.exit(1);

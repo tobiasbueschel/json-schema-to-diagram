@@ -1,6 +1,8 @@
 import { describe, beforeEach, it, expect, vi, afterEach } from "vitest";
 import path from "path";
-import { fs, vol } from "memfs";
+import { fs, Volume } from "memfs";
+
+const vol = new Volume();
 
 vi.mock("node:fs");
 vi.mock("node:fs/promises");
@@ -9,14 +11,19 @@ describe("jsonSchemaToDiagram", () => {
   let jsonSchemaToDiagram;
   const startMarker = "<!-- MERMAID_DIAGRAM_START -->";
   const endMarker = "<!-- MERMAID_DIAGRAM_END -->";
+  const resolvedPath = path.resolve(process.cwd(), "./README.md");
+  const filePath = "./README.md";
 
   beforeEach(async () => {
-    vi.restoreAllMocks();
     process.env.OPENAI_API_KEY = "test-api-key";
-    vol.reset();
+
+    vi.mock("node:fs/promises", async () => {
+      const memfs = await vi.importActual("memfs");
+      return memfs.fs.promises;
+    });
 
     vol.fromJSON({
-      "./README.md":
+      resolvedPath:
         "<!-- MERMAID_DIAGRAM_START -->\nOld content\n<!-- MERMAID_DIAGRAM_END -->",
     });
 
@@ -32,6 +39,7 @@ describe("jsonSchemaToDiagram", () => {
   });
 
   afterEach(() => {
+    vol.reset();
     vi.restoreAllMocks();
   });
 
@@ -55,7 +63,6 @@ describe("jsonSchemaToDiagram", () => {
   });
 
   it.todo("updates file with generated mermaid diagram", async () => {
-    const filePath = "./README.md";
     const systemPrompt = "test system prompt";
     const model = "test model";
     const jsonSchema = { tools: [] };
@@ -83,13 +90,12 @@ describe("jsonSchemaToDiagram", () => {
   });
 
   it.todo("logs error if markers are not found in file", async () => {
-    const filePath = "./README.md";
     const systemPrompt = "test system prompt";
     const model = "test model";
     const jsonSchema = { tools: [] };
 
     vol.fromJSON({
-      "./README.md": "No markers here",
+      resolvedPath: "No markers here",
     });
 
     vi.spyOn(console, "error").mockImplementation(() => {});
@@ -109,13 +115,17 @@ describe("jsonSchemaToDiagram", () => {
     );
   });
 
-  it("logs error if there is an error processing the file", async () => {
-    const filePath = "./README.md";
+  it("logs error if the LLM fails to generate the diagram", async () => {
     const systemPrompt = "test system prompt";
     const model = "test model";
     const jsonSchema = { tools: [] };
 
     vi.spyOn(console, "error").mockImplementation(() => {});
+
+    vi.mock("ai", () => ({
+      __esModule: true,
+      generateObject: vi.fn().mockRejectedValue(new Error("Processing failed")),
+    }));
 
     await jsonSchemaToDiagram({
       filePath,
@@ -127,7 +137,7 @@ describe("jsonSchemaToDiagram", () => {
     });
 
     expect(console.error).toHaveBeenCalledWith(
-      `Error processing ${filePath}:`,
+      `Error processing ${resolvedPath}:`,
       expect.any(Error)
     );
   });

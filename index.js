@@ -53,10 +53,19 @@ export default async function jsonSchemaToDiagram(options) {
     throw new Error("Missing required options");
   }
 
-  const fileToUpdatePath = path.join(__dirname, filePath);
+  const fileToUpdatePath = path.isAbsolute(filePath)
+    ? filePath
+    : path.resolve(process.cwd(), filePath);
 
   try {
     const data = await readFile(fileToUpdatePath, "utf8");
+
+    const regex = new RegExp(`${startMarker}[\\s\\S]*?${endMarker}`, "g");
+
+    if (!regex.test(data)) {
+      console.error(`Markers not found in ${fileToUpdatePath}`);
+      return;
+    }
 
     const {
       object: { mermaidDiagramString },
@@ -75,21 +84,14 @@ export default async function jsonSchemaToDiagram(options) {
 
     const diagramContent = `\`\`\`mermaid\n${mermaidDiagramString}\n\`\`\`\n`;
 
-    const regex = new RegExp(`${startMarker}[\\s\\S]*?${endMarker}`, "g");
-
-    if (!regex.test(data)) {
-      console.error(`Markers not found in ${filePath}.`);
-      return;
-    }
-
     const newContent = data.replace(
       regex,
       `${startMarker}\n${diagramContent}${endMarker}`
     );
 
     await writeFile(fileToUpdatePath, newContent, "utf8");
-    console.log(`Diagram successfully updated in ${filePath}`);
+    console.log(`Diagram successfully updated in ${fileToUpdatePath}`);
   } catch (err) {
-    console.error(`Error processing ${filePath}:`, err);
+    console.error(`Error processing ${fileToUpdatePath}:`, err);
   }
 }
