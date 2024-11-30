@@ -1,6 +1,6 @@
 {
   "name": "json-schema-to-diagram",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Generate Mermaid diagrams from JSON schemas e.g., for function calling tools.",
   "license": "MIT",
   "repository": "tobiasbueschel/json-schema-to-diagram",
